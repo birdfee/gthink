@@ -1,5 +1,5 @@
 #pragma once
-#include "../common/IGlobal.h"
+#include "IGlobal.h"
 
 uid guid = 10000;
 
