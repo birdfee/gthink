@@ -83,7 +83,7 @@
     <ClCompile Include="BaseUsers.cpp">
       <Filter>account</Filter>
     </ClCompile>
-    <ClCompile Include="IGlobal.cpp">
+    <ClCompile Include="..\common\IGlobal.cpp">
       <Filter>common</Filter>
     </ClCompile>
   </ItemGroup>
