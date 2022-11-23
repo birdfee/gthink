@@ -100,6 +100,7 @@ typedef struct tagMsgReqGameEnter
 {
 	int client;
 	int msgid;
+	int roleid;
 }MsgReqGameEnter;
 
 typedef struct tagMsgRspGameEnter

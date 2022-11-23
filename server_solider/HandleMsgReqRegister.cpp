@@ -3,6 +3,7 @@
 #include <string>	
 #include <time.h>
 #include "../common/IGlobal.h"
+#include "BaseUsers.h"
 
 void HandleMsgReqRegister::Init(MsgReqRegister req)
 {
@@ -166,16 +167,18 @@ int HandleMsgReqRegister::Login(std::string account, std::string pwd)
 		}
 		else if (iterItem->second == pwd)
 		{
-			LoginAccountInfo loginAccountInfo;
-			loginAccountInfo.account = account;
-			loginAccountInfo.userid = genGuid();
-			loginAccountInfo.client = m_client;
-			loginAccountInfo.loginTime = time(NULL);
+
 
 			std::map<std::string, LoginAccountInfo>::iterator iterInfo = m_loginOnlineInfos.find(account);
 			//std::map<int, LoginAccountInfo>::iterator iterClientOLInfo = m_clientOnlineInfos.find(m_closedClient);
 			if (iterInfo == m_loginOnlineInfos.end())
 			{
+				LoginAccountInfo loginAccountInfo;
+				loginAccountInfo.account = account;
+				loginAccountInfo.userid = genGuid();
+				loginAccountInfo.client = m_client;
+				loginAccountInfo.loginTime = time(NULL);
+
 				loginAccountInfo.id = genGuid();	//限制2秒内只能登录1次
 				loginAccountInfo.lastLoginTime = loginAccountInfo.loginTime - 2;		
 				//loginAccountInfo.lastOfflineTime = 0;	
@@ -191,6 +194,7 @@ int HandleMsgReqRegister::Login(std::string account, std::string pwd)
 					}
 
 					m_clientOnlineInfos.erase(iterClientOLAlreadyInfo);
+					users.del(iterAlreadyInfo->second.userid);
 				}
 
 				m_loginOnlineInfos.insert(make_pair(account, loginAccountInfo));
@@ -198,10 +202,15 @@ int HandleMsgReqRegister::Login(std::string account, std::string pwd)
 			}
 			else
 			{
-				if (loginAccountInfo.loginTime - iterInfo->second.lastLoginTime <= 2)
+				if (time(NULL) - iterInfo->second.lastLoginTime <= 2)
 				{
 					return RESULT_FAILED_LOGIN_TIME_LIMIT;
 				}
+				LoginAccountInfo loginAccountInfo;
+				loginAccountInfo.account = iterInfo->second.account;
+				loginAccountInfo.userid = iterInfo->second.userid;
+				loginAccountInfo.client = m_client;
+				loginAccountInfo.loginTime = time(NULL);
 
 				loginAccountInfo.id = genGuid();	//接收的msg里面需要带过来，以便rsp正确的client;但是这样没踢下线，若只是客户端响应弹出退出登录的界面是不行的,需要disconnect,断开连接
 				loginAccountInfo.lastLoginTime = iterInfo->second.loginTime;
@@ -221,6 +230,8 @@ int HandleMsgReqRegister::Login(std::string account, std::string pwd)
 					m_clientOnlineInfos.erase(iterClientOLExpiredInfo);
 				}
 				
+				users.del(iterInfo->second.userid);
+
 				if (m_rspLogin.needCloseClient == loginAccountInfo.client)
 				{
 
@@ -277,6 +288,7 @@ int HandleMsgReqRegister::ClientClosed()
 	if (iterLoginOLInfo != m_loginOnlineInfos.end())
 	{
 		m_loginOnlineInfos.erase(iterLoginOLInfo);
+		users.del(iterLoginOLInfo->second.userid);
 	}
 
 	return result;

@@ -1,6 +1,7 @@
 #include "HandleMsgReqRegisterRole.h"
 #include "../common/game_code.h"
 #include "../common/IGlobal.h"
+#include "BaseUsers.h"
 
 void HandleMsgReqRegisterRole::Init(u_int64 userid, MsgReqRoleRegister req)
 {
@@ -78,39 +79,41 @@ int HandleMsgReqRegisterRole::RegisterRole(std::string nickname, int sex)
 		return RESULT_FAILED_ROLE_SEX_INVAILD;
 	}
 
-	RoleInfo roleInfo;
-	std::map<u_int64, std::vector<RoleInfo>>::iterator iterRoleInfo = m_roleUserInfos.find(m_userid);
-	if (iterRoleInfo == m_roleUserInfos.end())
-	{
-		roleInfo.roleid = genGuid();
-		//roleInfo.nickname = m_reqRoleRegister.nickname;
-		memcpy(roleInfo.nickname, m_reqRoleRegister.nickname, sizeof(roleInfo.nickname));
-		roleInfo.sex = m_reqRoleRegister.sex;
-		roleInfo.attack = 0;
-		roleInfo.defend = 0;
-		roleInfo.hp = 0;
-		roleInfo.level = 0;
-		std::vector<RoleInfo> vecRoleInfos;
-		vecRoleInfos.push_back(roleInfo);
-		m_roleUserInfos.insert(std::make_pair(m_userid, vecRoleInfos));
-	}
-	else if (iterRoleInfo != m_roleUserInfos.end())
-	{
-		if (iterRoleInfo->second.size() > 12)
-		{
-			return RESULT_FAILED_ROLE_COUNT_FULL;
-		}
+	users.add(m_userid, m_reqRoleRegister.nickname, m_reqRoleRegister.sex);
 
-		roleInfo.roleid = genGuid();
-		//roleInfo.nickname = m_reqRoleRegister.nickname;
-		memcpy(roleInfo.nickname, m_reqRoleRegister.nickname, sizeof(roleInfo.nickname));
-		roleInfo.sex = m_reqRoleRegister.sex;
-		roleInfo.attack = 0;
-		roleInfo.defend = 0;
-		roleInfo.hp = 0;
-		roleInfo.level = 0;
-		iterRoleInfo->second.push_back(roleInfo);
-	}
+	//RoleInfo roleInfo;
+	//std::map<u_int64, std::vector<RoleInfo>>::iterator iterRoleInfo = m_roleUserInfos.find(m_userid);
+	//if (iterRoleInfo == m_roleUserInfos.end())
+	//{
+	//	roleInfo.roleid = genGuid();
+	//	//roleInfo.nickname = m_reqRoleRegister.nickname;
+	//	memcpy(roleInfo.nickname, m_reqRoleRegister.nickname, sizeof(roleInfo.nickname));
+	//	roleInfo.sex = m_reqRoleRegister.sex;
+	//	roleInfo.attack = 0;
+	//	roleInfo.defend = 0;
+	//	roleInfo.hp = 0;
+	//	roleInfo.level = 0;
+	//	std::vector<RoleInfo> vecRoleInfos;
+	//	vecRoleInfos.push_back(roleInfo);
+	//	m_roleUserInfos.insert(std::make_pair(m_userid, vecRoleInfos));
+	//}
+	//else if (iterRoleInfo != m_roleUserInfos.end())
+	//{
+	//	if (iterRoleInfo->second.size() > 12)
+	//	{
+	//		return RESULT_FAILED_ROLE_COUNT_FULL;
+	//	}
+
+	//	roleInfo.roleid = genGuid();
+	//	//roleInfo.nickname = m_reqRoleRegister.nickname;
+	//	memcpy(roleInfo.nickname, m_reqRoleRegister.nickname, sizeof(roleInfo.nickname));
+	//	roleInfo.sex = m_reqRoleRegister.sex;
+	//	roleInfo.attack = 0;
+	//	roleInfo.defend = 0;
+	//	roleInfo.hp = 0;
+	//	roleInfo.level = 0;
+	//	iterRoleInfo->second.push_back(roleInfo);
+	//}
 
 	return result;
 }

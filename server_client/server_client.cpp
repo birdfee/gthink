@@ -41,6 +41,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	MsgReqRoleRegister msgReqRoleRegister;
 	MsgRspRoleRegister msgRspRoleRegister;
 	MsgRspRoleRegisterTemp msgRspRoleRegisterTemp;
+	MsgReqGameEnter msgReqGameEnter;
+	MsgRspGameEnter msgRspGameEnter;
 
 	WORD wVersion = 0;
 	wVersion = MAKEWORD(1,1);
@@ -62,6 +64,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		std::cout << "server client create socket failed" << std::endl;
 		return -1;
 	}
+
+	std::cout << "server client create socket server gate value : " << serverGate << std::endl;
 
 	//int mode = 1;
 	//result = ioctlsocket(serverGate, FIONBIO, (u_long*)&mode);	//need & or set ioctl socket failed
@@ -127,6 +131,12 @@ int _tmain(int argc, _TCHAR* argv[])
 			std::cout << "please in put a sex : " << std::endl;
 			std::cin >> msgReqRoleRegister.sex;
 			memcpy(buf, &msgReqRoleRegister, sizeof(msgReqRoleRegister));
+			break;
+		case MSG_REQ_GAME_ENTER:
+			msgReqGameEnter.msgid = msgid;
+			std::cout << "please in put a roleid : " << std::endl;
+			std::cin >> msgReqGameEnter.roleid;
+			memcpy(buf, &msgReqGameEnter, sizeof(msgReqGameEnter));
 			break;
 		//default:
 		//	break;
@@ -212,6 +222,10 @@ int _tmain(int argc, _TCHAR* argv[])
 			{
 				std::cout << "roleid : " << msgRspRoleRegister.vecRoleInfos[msgRspRoleRegister.vecRoleInfos.size() - 1].roleid << ", nickname : " << msgRspRoleRegister.vecRoleInfos[msgRspRoleRegister.vecRoleInfos.size() - 1].nickname << std::endl;
 			}
+			break;
+		case MSG_RSP_GAME_ENTER:
+			memcpy(&msgRspGameEnter, msg, sizeof(msgRspGameEnter));
+			std::cout << "recv msg from gate rsp game enter msgbody : " << msgRspGameEnter.msgid << "," << msgRspGameEnter.result << std::endl;
 			break;
 		//default:
 		//	break;

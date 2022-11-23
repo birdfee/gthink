@@ -29,6 +29,7 @@ typedef struct tagClientConnectInfo
 {
 	SOCKET client;
 	SOCKET solider;
+	SOCKET recvgate;
 }ClientConnectInfo;
 
 void split_s(std::vector<std::string>& vecStrs, char* pStr, char partSymbol)
@@ -70,6 +71,7 @@ DWORD WINAPI JoinThread(LPVOID lpParam)
 	ClientConnectInfo* pClientConnInfo = (ClientConnectInfo*)lpParam;
 	SOCKET client = pClientConnInfo->client;
 	SOCKET solider = pClientConnInfo->solider;
+	SOCKET recvgate = pClientConnInfo->recvgate;
 	char buf[64];
 	char msg[64];
 	memset(buf, 0, 64);
@@ -94,6 +96,8 @@ DWORD WINAPI JoinThread(LPVOID lpParam)
 	MsgReqRoleRegister msgReqRoleRegister;
 	MsgRspRoleRegister msgRspRoleRegister;
 	MsgRspRoleRegisterTemp msgRspRoleRegisterTemp;
+	MsgReqGameEnter msgReqGameEnter;
+	MsgRspGameEnter msgRspGameEnter;
 
 	RoleInfo roleInfoRegister;
 
@@ -116,6 +120,7 @@ DWORD WINAPI JoinThread(LPVOID lpParam)
 
 	char strMsgID[6];
 	char strMsgSex[6];
+	char strRoleID[21];
 	int clientInteger = 0;
 	//char strMsgRspRegisterMsgID[6];
 	//char strMsgRspRegisterResult[6];
@@ -200,6 +205,14 @@ DWORD WINAPI JoinThread(LPVOID lpParam)
 			//str += msgReqRoleRegister.sex;
 			str += strMsgSex;
 			break;
+		case MSG_REQ_GAME_ENTER:
+			memcpy(&msgReqGameEnter, buf, sizeof(msgReqGameEnter));
+			itoa(msgReqGameEnter.msgid, strMsgID, 10);
+			str += strMsgID;
+			str += ",";
+			itoa(msgReqGameEnter.roleid, strRoleID, 10);
+			str += strRoleID;
+			break;
 		//default:
 		//	shutdown(client, 0x02);
 		//	closesocket(client);
@@ -214,6 +227,7 @@ DWORD WINAPI JoinThread(LPVOID lpParam)
 
 		strClientInfo = strClient;
 		str = "gate : client : " + strClientInfo + "," + str;	//gate : client : 164,301,750857753,123456
+		std::cout << "server gate send to solider from client msg : " << str << std::endl;
 		strcpy(msg, str.c_str());
 		//send(client, msg, 64, sendFlags);		//return msg with game process, for the front solider:gate:client
 		send(solider, msg, 64, sendServerFlags);	//send the msg from client to solider
@@ -221,11 +235,11 @@ DWORD WINAPI JoinThread(LPVOID lpParam)
 
 		//-------------------------recv solider response start-------------------------//
 		//result = recv(solider, soliderRespon, 128, recvRspFlags);
-		result = recv(solider, soliderRespon, 1024, MSG_PEEK);	
+		result = recv(recvgate, soliderRespon, 1024, MSG_PEEK/*recvRspFlags*/);	
 		memcpy(&msgRspSoliderRespon, soliderRespon, sizeof(msgRspSoliderRespon));
 		msgLength = result;
 		std::cout << "server gate recv from solider process response msg : msgLength ------ : " << msgLength << ", error : " << WSAGetLastError() << ", solider : " << solider << std::endl;
-		result = recv(solider, soliderRespon, msgLength, recvRspFlags);		//to transport param for sizeof in recv and send, msg length value : 1634561906; soliderRespon.sizeof() not enough the reason
+		result = recv(recvgate, soliderRespon, msgLength, recvRspFlags);		//to transport param for sizeof in recv and send, msg length value : 1634561906; soliderRespon.sizeof() not enough the reason
 		memcpy(&msgRspSoliderRespon2, soliderRespon, sizeof(msgRspSoliderRespon2));
 		//result = recv(solider, &vecSoliderRespon[0], vecSoliderRespon.size(), recvRspFlags);
 		std::cout << "server gate recv from solider process response msg : " << result << ", error : " << WSAGetLastError() << ", solider : " << solider << std::endl;
@@ -288,6 +302,13 @@ DWORD WINAPI JoinThread(LPVOID lpParam)
 			std::cout << "server gate send to client solider process response msg : " << result << ", error : " << WSAGetLastError() << ", client : " << msgRspInfo.client << ", msgLength : " << msgLength << std::endl;
 			client = msgRspInfo.client;		//
 			break;
+		case MSG_RSP_GAME_ENTER:
+			memcpy(&msgRspGameEnter, soliderRespon, sizeof(msgRspGameEnter));
+			std::cout << "server gate send to msgRspInfo.client : " << msgRspInfo.client << std::endl;
+			result = send(msgRspInfo.client, soliderRespon, sizeof(msgRspGameEnter), sendRspFlags);
+			std::cout << "server gate send to client solider process response msg : " << result << ", error : " << WSAGetLastError() << ", client : " << msgRspInfo.client << ", msgLength : " << msgLength << std::endl;
+			client = msgRspInfo.client;		//
+			break;
 		//default:
 		//	break;
 		}
@@ -341,6 +362,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		return -1;
 	}
 
+	std::cout << "server gate create socket value : " << server << std::endl;
+
 	SOCKADDR_IN serverAddress;
 	serverAddress.sin_family = AF_INET;
 	serverAddress.sin_addr.S_un.S_addr = INADDR_ANY;
@@ -372,6 +395,10 @@ int _tmain(int argc, _TCHAR* argv[])
 		std::cout << "server gate create server solider socket failed" << std::endl;
 		return -1;
 	}
+	//else
+	//{
+	//	std::cout << "server gate create server solider socket success : " << serverSolider << std::endl;
+	//}
 
 	SOCKADDR_IN soliderAddress;
 	soliderAddress.sin_family = AF_INET;
@@ -398,6 +425,40 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 	//-----------------------connect solider end----------------------//
 
+	//-----------------------connect recv start----------------------//
+	SOCKET serverRecv;
+	serverRecv = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (serverRecv == INVALID_SOCKET)
+	{
+		std::cout << "server gate create server recv socket failed" << std::endl;
+		return -1;
+	}
+
+	SOCKADDR_IN recvAddress;
+	recvAddress.sin_family = AF_INET;
+	recvAddress.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");//INADDR_ANY;	
+	recvAddress.sin_port = 9903;
+	//about need bind SOCKET serverSolider..., if bind, then connect will to make gate connect gate's bind SOCKET
+	//it's not process solider's bind 9901 port, so can't to bind, would make solider accept() to gate faild, breakpoint could not to the process solider, then connect success
+	//result = bind(serverSolider, (sockaddr*)&soliderAddress, sizeof(soliderAddress));
+	//if (result == SOCKET_ERROR)
+	//{
+	//	std::cout << "server gate bind solider socket failed" << std::endl;
+	//	return -1;
+	//}
+
+	result = connect(serverRecv, (sockaddr*)&recvAddress, sizeof(recvAddress));
+	if (result == SOCKET_ERROR)
+	{
+		std::cout << "server gate connect recv failed" << std::endl;
+		return -1;
+	}
+	else if (result == 0)
+	{
+		std::cout << "server gate connect recv success port : -------------------- 9903" << std::endl;
+	}
+	//-----------------------connect recv end----------------------//
+
 
 	SOCKADDR_IN clientAddress;
 	int len = sizeof(clientAddress);
@@ -414,6 +475,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		client = accept(server, (sockaddr*)&clientAddress, &len);
 		clientConnInfo.client = client;
 		clientConnInfo.solider = serverSolider;
+		clientConnInfo.recvgate = serverRecv;
 		handleRemote = CreateThread(&threadAttrs, sizeof(threadAttrs), JoinThread, /*(LPVOID)client*/(LPVOID)&clientConnInfo, dwCreationFlags, &threadId);
 	}
 

@@ -63,4 +63,5 @@ private:
 	std::map<std::string, std::string> m_accountInfos;		//account[20], pwd[16]
 	std::map<std::string, LoginAccountInfo> m_loginOnlineInfos;	
 	std::map<int, LoginAccountInfo> m_clientOnlineInfos;
+	std::map<u_int64,LoginAccountInfo> m_userOnlineInfos;
 };
